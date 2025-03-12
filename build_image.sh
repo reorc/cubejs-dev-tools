@@ -90,6 +90,24 @@ cd "$BRANCHES_DIR/$RELEASE_BRANCH" || {
     exit 1
 }
 
+# Show changes from reorc branch before merging
+echo "========================================================"
+echo "Showing changes from reorc branch compared to master..."
+echo "========================================================"
+git fetch origin reorc
+echo "Files changed in reorc branch:"
+git diff --name-status origin/master origin/reorc
+
+echo "Detailed changes (showing diff):"
+git diff --color=always origin/master origin/reorc | less -R
+
+# Prompt for confirmation before merging
+read -p "Do you want to proceed with merging the reorc branch? (y/n): " confirm
+if [[ $confirm != [yY] && $confirm != [yY][eE][sS] ]]; then
+    echo "Merge aborted by user."
+    exit 0
+fi
+
 # Merge code from reorc branch
 echo "Merging code from reorc branch..."
 git merge origin/reorc
