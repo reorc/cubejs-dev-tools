@@ -5,6 +5,39 @@ BASE_DIR=~/projects/cube
 BRANCHES_DIR=$BASE_DIR/branches
 RELEASE_BRANCH="release"
 
+# Default Docker image settings
+DEFAULT_IMAGE_NAME="reorc/cube"
+DEFAULT_IMAGE_TAG="latest"
+IMAGE_NAME=$DEFAULT_IMAGE_NAME
+IMAGE_TAG=$DEFAULT_IMAGE_TAG
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --image-name)
+            IMAGE_NAME="$2"
+            shift 2
+            ;;
+        --image-tag)
+            IMAGE_TAG="$2"
+            shift 2
+            ;;
+        --help)
+            echo "Usage: $0 [options]"
+            echo "Options:"
+            echo "  --image-name NAME    Set custom Docker image name (default: $DEFAULT_IMAGE_NAME)"
+            echo "  --image-tag TAG      Set custom Docker image tag (default: $DEFAULT_IMAGE_TAG)"
+            echo "  --help               Show this help message"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 # Function to check and install dependencies
 setup_dependencies() {
     echo "Checking and installing dependencies..."
@@ -131,7 +164,7 @@ echo "Copying yarn.lock for Docker build..."
 cp "$BRANCHES_DIR/$RELEASE_BRANCH/yarn.lock" .
 
 # Build the image using sudo to ensure permissions
-echo "Building Cube.js Docker image..."
-sudo docker build -t cubejs/cube:latest -f latest.Dockerfile .
+echo "Building Cube.js Docker image as $IMAGE_NAME:$IMAGE_TAG..."
+sudo docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f latest.Dockerfile .
 
-echo "Build complete! The image is tagged as cubejs/cube:latest" 
+echo "Build complete! The image is tagged as $IMAGE_NAME:$IMAGE_TAG" 
