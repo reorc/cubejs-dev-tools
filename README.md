@@ -204,6 +204,12 @@ The `common/utils.sh` script provides shared functions used across all scripts:
 
 ### Setting Up a TypeScript/JavaScript Development Environment with Debugging
 
+## Prerequisites
+
+- VSCode with the following extensions installed:
+  - CodeLLDB (for Rust debugging)
+  - JavaScript Debugger (built-in)
+
 This use case walks through setting up a complete development environment for Cube.js with TypeScript/JavaScript support and step-by-step debugging capabilities.
 
 #### Step 1: Initial Repository Setup
