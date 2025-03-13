@@ -1,55 +1,10 @@
 #!/bin/bash
 
+# Source common utilities
+source "$(dirname "$0")/../common/utils.sh"
+
 # Exit on any error
 set -e
-
-# Function to print status messages
-print_status() {
-    echo "===> $1"
-}
-
-# Function to check if a command exists
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-# Check if Docker is installed
-check_docker() {
-    if ! command_exists docker; then
-        print_status "Docker is not installed. Installing Docker..."
-        
-        # Update package list
-        sudo apt-get update
-        
-        # Install prerequisites
-        sudo apt-get install -y \
-            apt-transport-https \
-            ca-certificates \
-            curl \
-            gnupg \
-            lsb-release
-        
-        # Add Docker's official GPG key
-        curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-        
-        # Set up the stable repository
-        echo \
-          "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu \
-          $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-        
-        # Install Docker Engine
-        sudo apt-get update
-        sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-        
-        # Add current user to docker group to avoid using sudo
-        sudo usermod -aG docker $USER
-        
-        print_status "Docker installed successfully. You may need to log out and back in for group changes to take effect."
-        print_status "For now, we'll continue using sudo for docker commands."
-    else
-        print_status "Docker is already installed"
-    fi
-}
 
 # Function to build and push the Docker image
 build_and_push_image() {
@@ -84,7 +39,7 @@ EOF
     print_status "Logging in to Docker Hub"
     # Check if DOCKER_USERNAME and DOCKER_PASSWORD environment variables are set
     if [ -z "$DOCKER_USERNAME" ] || [ -z "$DOCKER_PASSWORD" ]; then
-        print_status "Docker Hub credentials not found in environment variables"
+        print_warning "Docker Hub credentials not found in environment variables"
         print_status "Please enter your Docker Hub credentials"
         
         # Prompt for Docker Hub credentials
@@ -110,7 +65,7 @@ EOF
     print_status "Cleaning up"
     rm -f "$dockerfile"
     
-    print_status "Docker image built and pushed successfully!"
+    print_success "Docker image built and pushed successfully!"
 }
 
 # Main execution
@@ -118,7 +73,7 @@ main() {
     print_status "Starting Docker image build process for Cube.js with Doris driver..."
     
     # Check if Docker is installed
-    check_docker
+    install_docker
     
     # Default values
     local base_image="reorc/cube:latest"
@@ -140,8 +95,18 @@ main() {
                 new_image_tag="$2"
                 shift 2
                 ;;
+            --help)
+                print_status "Usage: $0 [options]"
+                print_status "Options:"
+                print_status "  --base-image IMAGE  Set base Docker image (default: $base_image)"
+                print_status "  --image-name NAME   Set custom Docker image name (default: $new_image_name)"
+                print_status "  --image-tag TAG     Set custom Docker image tag (default: $new_image_tag)"
+                print_status "  --help              Show this help message"
+                exit 0
+                ;;
             *)
-                print_status "Unknown option: $1"
+                print_error "Unknown option: $1"
+                print_status "Use --help for usage information"
                 exit 1
                 ;;
         esac

@@ -143,7 +143,7 @@ setup_repository() {
 
 # Setup cube repository
 print_status "Setting up cube repository..."
-setup_repository "git@github.com:reorc/cube.git" "cube" "master" "reorc"
+setup_repository "git@github.com:reorc/cube.git" "cube" "master" "reorc" "develop"
 
 # Setup cubejs-doris-driver repository
 print_status "Setting up cubejs-doris-driver repository..."
