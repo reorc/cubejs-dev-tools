@@ -18,6 +18,9 @@ install_yarn
 # Install Rust
 install_rust
 
+# Install Java 17
+install_java "17"
+
 # Install VSCode extensions (if VSCode is installed)
 if command_exists code; then
     print_status "Checking VSCode extensions..."

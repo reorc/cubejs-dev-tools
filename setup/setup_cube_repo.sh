@@ -119,8 +119,12 @@ setup_repository() {
             else
                 print_status "Fetching $branch branch from remote..."
                 git fetch origin $branch:$branch || {
-                    print_status "Failed to fetch $branch branch. Does it exist on remote?"
-                    return 1
+                    print_status "Failed to fetch $branch branch from remote. Creating it locally..."
+                    # Create the branch locally based on the current branch
+                    git branch $branch || {
+                        print_status "Failed to create $branch branch locally"
+                        return 1
+                    }
                 }
             fi
             

@@ -11,9 +11,10 @@ set -e
 
 # Configuration
 DORISDB_VERSION="3.0.4"
-DORISDB_DATA_DIR="/opt/dorisdb/data"
-DORISDB_LOG_DIR="/opt/dorisdb/log"
-DORISDB_COMPOSE_DIR="/opt/dorisdb/compose"
+# Use user-specific directories instead of system directories
+DORISDB_DATA_DIR="$HOME/.local/dorisdb/data"
+DORISDB_LOG_DIR="$HOME/.local/dorisdb/log"
+DORISDB_COMPOSE_DIR="$HOME/.local/dorisdb/compose"
 DORISDB_ADMIN_USER="root"
 DORISDB_ADMIN_PASSWORD=""  # Empty password for initial login
 DORISDB_NEW_PASSWORD="root"  # Password to set after login
@@ -26,24 +27,34 @@ print_section() {
     print_status "=== $1 ==="
 }
 
-# Check if script is run as root
-if [ "$(id -u)" -ne 0 ]; then
-    print_error "This script must be run as root or with sudo privileges"
-    exit 1
-fi
+# Check if user is in docker group
+check_docker_permissions() {
+    if ! groups | grep -q docker; then
+        print_warning "Your user is not in the docker group. Some commands may require sudo."
+        print_warning "To add your user to the docker group (recommended), run:"
+        print_warning "sudo usermod -aG docker $USER"
+        print_warning "Then log out and log back in for the changes to take effect."
+        return 1
+    fi
+    return 0
+}
 
 # Install dependencies if not already installed
 print_section "Checking and installing dependencies"
 
 # Install required packages using the utility function
+# Note: install_system_packages in utils.sh already uses sudo internally
 install_system_packages curl apt-transport-https ca-certificates gnupg lsb-release
 
 # Install Docker if not already installed
 if ! command_exists docker; then
     print_section "Installing Docker"
+    # Note: install_docker in utils.sh already uses sudo internally
     install_docker
 else
     print_warning "Docker is already installed"
+    # Check if user has docker permissions
+    check_docker_permissions
 fi
 
 # Install Docker Compose if not already installed
@@ -63,7 +74,9 @@ fi
 
 # Clean up any existing data to ensure a fresh start
 print_section "Cleaning up existing data"
-cd $DORISDB_COMPOSE_DIR 2>/dev/null && docker-compose down -v 2>/dev/null || true
+if [ -d "$DORISDB_COMPOSE_DIR" ]; then
+    cd $DORISDB_COMPOSE_DIR 2>/dev/null && docker-compose down -v 2>/dev/null || true
+fi
 rm -rf $DORISDB_DATA_DIR
 rm -rf $DORISDB_LOG_DIR
 
@@ -74,9 +87,9 @@ mkdir -p $DORISDB_DATA_DIR/be
 mkdir -p $DORISDB_LOG_DIR/fe
 mkdir -p $DORISDB_LOG_DIR/be
 mkdir -p $DORISDB_COMPOSE_DIR
-chmod -R 777 $DORISDB_DATA_DIR
-chmod -R 777 $DORISDB_LOG_DIR
-chmod -R 777 $DORISDB_COMPOSE_DIR
+chmod -R 755 $DORISDB_DATA_DIR
+chmod -R 755 $DORISDB_LOG_DIR
+chmod -R 755 $DORISDB_COMPOSE_DIR
 
 # Create Docker Compose file
 print_section "Creating Docker Compose file"

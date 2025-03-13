@@ -24,7 +24,7 @@ print_warning() {
 CUBE_DEV_TOOLS_DIR="$HOME/projects/cubejs-dev-tools/branches/main"
 CUBE_REPO_DIR="$HOME/projects/cube/branches/develop"
 TEST_PROJECT_DIR="$HOME/projects/cubejs-test-project"
-SCHEMAS_DIR="$(dirname "$0")/schemas"
+SCHEMAS_DIR="$CUBE_DEV_TOOLS_DIR/development/cube/setup_project/schemas"
 
 # PostgreSQL credentials (matching setup_postgres.sh)
 POSTGRES_ADMIN_USER="postgres"

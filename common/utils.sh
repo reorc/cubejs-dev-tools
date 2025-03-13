@@ -89,6 +89,20 @@ install_rust() {
     source "$HOME/.cargo/env"
 }
 
+# Function to install Java
+install_java() {
+    local version="${1:-17}"
+    
+    # Check if Java with specified version is installed
+    if command_exists java && [[ $(java -version 2>&1 | head -n 1) == *"$version"* ]]; then
+        print_warning "Java $version is already installed, skipping..."
+    else
+        print_status "Installing Java $version..."
+        sudo apt-get update
+        sudo apt-get install -y openjdk-${version}-jdk
+    fi
+}
+
 # Function to install Docker
 install_docker() {
     # Check if Docker is installed
@@ -168,7 +182,7 @@ build_cubesql() {
         return 0
     else
         print_status "CubeSQL is already built"
-        return 1
+        return 0
     fi
 }
 
@@ -185,7 +199,7 @@ install_cube_dependencies() {
         # Check if yarn.lock has changed since last install
         if [ -f ".yarn_install_timestamp" ] && [ yarn.lock -ot ".yarn_install_timestamp" ]; then
             print_status "Dependencies are up to date"
-            return 1
+            return 0
         else
             print_status "Installing/updating Cube.js dependencies..."
             yarn install
@@ -218,7 +232,7 @@ build_cube_frontend() {
         return 0
     else
         print_status "Frontend packages and playground already built"
-        return 1
+        return 0
     fi
 }
 
@@ -237,6 +251,6 @@ start_typescript_watch() {
         return 0
     else
         print_status "TypeScript compiler is already running"
-        return 1
+        return 0
     fi
 } 
