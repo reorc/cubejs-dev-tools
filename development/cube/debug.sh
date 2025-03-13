@@ -1,23 +1,25 @@
 #!/bin/bash
 
-# Colors for better readability
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
+# debug.sh
+# Script to set up a Cube.js debugging environment
 
-echo -e "${BLUE}=== Starting Cube.js Debugging Environment ===${NC}"
+# Source common utilities
+source "$(dirname "$0")/../../common/utils.sh"
+
+# Function to print section headers
+print_section() {
+    print_status "=== $1 ==="
+}
 
 # Function to kill processes by port
 kill_process_by_port() {
   local port=$1
   local pid=$(lsof -i :$port | grep LISTEN | awk '{print $2}')
   if [ ! -z "$pid" ]; then
-    echo -e "${RED}Killing process on port $port (PID: $pid)${NC}"
+    print_error "Killing process on port $port (PID: $pid)"
     kill -9 $pid 2>/dev/null || true
   else
-    echo -e "${GREEN}No process found on port $port${NC}"
+    print_success "No process found on port $port"
   fi
 }
 
@@ -26,10 +28,10 @@ kill_process_by_name() {
   local name=$1
   local pids=$(pgrep -f "$name" || true)
   if [ ! -z "$pids" ]; then
-    echo -e "${RED}Killing processes matching '$name' (PIDs: $pids)${NC}"
+    print_error "Killing processes matching '$name' (PIDs: $pids)"
     pkill -f "$name" 2>/dev/null || true
   else
-    echo -e "${GREEN}No processes found matching '$name'${NC}"
+    print_success "No processes found matching '$name'"
   fi
 }
 
@@ -38,7 +40,7 @@ link_package() {
   local package_path=$1
   local package_name=$2
   
-  echo -e "${YELLOW}Linking package: ${package_name}${NC}"
+  print_warning "Linking package: ${package_name}"
   
   # Register the package globally
   cd ${package_path}
@@ -55,7 +57,9 @@ CUBESQL_PATH=${CUBE_REPO_PATH}/rust/cubesql
 TEST_PROJECT_PATH=~/projects/cubejs-test-project
 CUBESQL_EXECUTABLE=${CUBESQL_PATH}/target/debug/cubesqld
 
-echo -e "${BLUE}Cleaning up existing processes...${NC}"
+print_section "Starting Cube.js Debugging Environment"
+
+print_section "Cleaning up existing processes"
 
 # Kill any existing Node.js processes on port 9229 (debugger)
 kill_process_by_port 9229
@@ -77,11 +81,10 @@ kill_process_by_name "cubesqld"
 kill_process_by_name "cubejs-server"
 
 # Wait a moment to ensure all processes are terminated
-echo -e "${BLUE}Waiting for processes to terminate...${NC}"
+print_status "Waiting for processes to terminate..."
 sleep 2
 
-# Ensure all key packages are properly linked
-echo -e "${BLUE}Ensuring packages are properly linked...${NC}"
+print_section "Ensuring packages are properly linked"
 
 # Core packages for API and query processing
 link_package "${CUBE_REPO_PATH}/packages/cubejs-api-gateway" "@cubejs-backend/api-gateway"
@@ -93,56 +96,58 @@ link_package "${CUBE_REPO_PATH}/packages/cubejs-server-core" "@cubejs-backend/se
 link_package "${CUBE_REPO_PATH}/packages/cubejs-backend-shared" "@cubejs-backend/shared"
 link_package "${CUBE_REPO_PATH}/packages/cubejs-base-driver" "@cubejs-backend/base-driver"
 
-echo -e "${GREEN}Package linking complete!${NC}"
+print_success "Package linking complete!"
 
-# Start TypeScript compiler in watch mode
-echo -e "${BLUE}Starting TypeScript compiler in watch mode...${NC}"
-cd ${CUBE_REPO_PATH}
-yarn tsc:watch > typescript-watch.log 2>&1 &
-TSC_PID=$!
-echo -e "${GREEN}TypeScript compiler started with PID: $TSC_PID${NC}"
+# Check if we can use the utility function for TypeScript watch
+if command_exists start_typescript_watch; then
+  start_typescript_watch ${CUBE_REPO_PATH}
+  TSC_PID=$!
+else
+  # Start TypeScript compiler in watch mode
+  print_section "Starting TypeScript compiler in watch mode"
+  cd ${CUBE_REPO_PATH}
+  yarn tsc:watch > typescript-watch.log 2>&1 &
+  TSC_PID=$!
+  print_success "TypeScript compiler started with PID: $TSC_PID"
+fi
 
 # Wait for TypeScript compiler to initialize
-echo -e "${BLUE}Waiting for TypeScript compiler to initialize...${NC}"
+print_status "Waiting for TypeScript compiler to initialize..."
 sleep 5
 
-# Build CubeSQL with debug symbols
-echo -e "${BLUE}Building CubeSQL with debug symbols...${NC}"
+print_section "Building CubeSQL with debug symbols"
 cd ${CUBESQL_PATH}
 cargo build
 
 # Verify the CubeSQL executable exists
 if [ ! -f "${CUBESQL_EXECUTABLE}" ]; then
-  echo -e "${RED}CubeSQL executable not found at ${CUBESQL_EXECUTABLE}${NC}"
-  echo -e "${RED}Please check the path and build process${NC}"
+  print_error "CubeSQL executable not found at ${CUBESQL_EXECUTABLE}"
+  print_error "Please check the path and build process"
   exit 1
 fi
 
-# Start CubeSQL with debugging enabled
-echo -e "${BLUE}Starting CubeSQL in the background...${NC}"
+print_section "Starting CubeSQL in the background"
 cd ${CUBESQL_PATH}
 RUST_BACKTRACE=1 RUST_LOG=trace ${CUBESQL_EXECUTABLE} &
 CUBESQL_PID=$!
-echo -e "${GREEN}CubeSQL started with PID: $CUBESQL_PID${NC}"
+print_success "CubeSQL started with PID: $CUBESQL_PID"
 
-# Start Cube.js with debugging enabled
-echo -e "${BLUE}Starting Cube.js with debugging enabled...${NC}"
+print_section "Starting Cube.js with debugging enabled"
 cd ${TEST_PROJECT_PATH}
-echo -e "${GREEN}Attaching debugger to port 9229. Please set your breakpoints now.${NC}"
-echo -e "${GREEN}Recommended breakpoints:${NC}"
-echo -e "${GREEN}1. ${CUBE_REPO_PATH}/packages/cubejs-api-gateway/src/gateway.ts - Look for the load() method around line 1785${NC}"
-echo -e "${GREEN}2. ${CUBE_REPO_PATH}/packages/cubejs-schema-compiler/src/adapter/BaseQuery.js - Look for methods with 'rollingWindow' in their name${NC}"
-echo -e "${GREEN}3. ${CUBE_REPO_PATH}/packages/cubejs-schema-compiler/src/adapter/BaseTimeDimension.ts - Contains time dimension handling logic${NC}"
-echo -e "${GREEN}4. ${CUBE_REPO_PATH}/packages/cubejs-query-orchestrator/src/orchestrator/QueryOrchestrator.ts - For query execution${NC}"
+print_success "Attaching debugger to port 9229. Please set your breakpoints now."
+print_success "Recommended breakpoints:"
+print_success "1. ${CUBE_REPO_PATH}/packages/cubejs-api-gateway/src/gateway.ts - Look for the load() method around line 1785"
+print_success "2. ${CUBE_REPO_PATH}/packages/cubejs-schema-compiler/src/adapter/BaseQuery.js - Look for methods with 'rollingWindow' in their name"
+print_success "3. ${CUBE_REPO_PATH}/packages/cubejs-schema-compiler/src/adapter/BaseTimeDimension.ts - Contains time dimension handling logic"
+print_success "4. ${CUBE_REPO_PATH}/packages/cubejs-query-orchestrator/src/orchestrator/QueryOrchestrator.ts - For query execution"
 
-# Print debugging instructions
-echo -e "${YELLOW}=== Debugging Instructions ===${NC}"
-echo -e "${YELLOW}1. Open VSCode and go to the Run and Debug view (Ctrl+Shift+D)${NC}"
-echo -e "${YELLOW}2. Select 'Attach to Cube.js Server' from the dropdown${NC}"
-echo -e "${YELLOW}3. Click the green play button to attach the debugger${NC}"
-echo -e "${YELLOW}4. Set breakpoints in the files mentioned above${NC}"
-echo -e "${YELLOW}5. Run a query using the debug-rolling-window.sh script in another terminal${NC}"
-echo -e "${YELLOW}6. The debugger will pause at your breakpoints${NC}"
+print_section "Debugging Instructions"
+print_warning "1. Open VSCode and go to the Run and Debug view (Ctrl+Shift+D)"
+print_warning "2. Select 'Attach to Cube.js Server' from the dropdown"
+print_warning "3. Click the green play button to attach the debugger"
+print_warning "4. Set breakpoints in the files mentioned above"
+print_warning "5. Run a query using the debug-rolling-window.sh script in another terminal"
+print_warning "6. The debugger will pause at your breakpoints"
 
 NODE_OPTIONS="--inspect-brk=0.0.0.0:9229" CUBEJS_DEV_MODE=true CUBEJS_LOG_LEVEL=trace yarn dev
 

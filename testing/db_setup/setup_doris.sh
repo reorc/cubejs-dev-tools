@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# setup_dorisdb.sh
+# setup_doris.sh
 # Script to set up DorisDB using Docker Compose on Ubuntu 24.04 LTS
 # This script is idempotent and can be run multiple times safely
 
