@@ -29,7 +29,7 @@ print_section() {
 
 # Check if user is in docker group
 check_docker_permissions() {
-    if ! groups | grep -q docker; then
+    if ! groups | grep -qw docker; then
         print_warning "Your user is not in the docker group. Some commands may require sudo."
         print_warning "To add your user to the docker group (recommended), run:"
         print_warning "sudo usermod -aG docker $USER"

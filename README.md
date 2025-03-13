@@ -218,8 +218,10 @@ First, set up the Cube.js repository structure:
 
 ```bash
 # Clone the cubejs-dev-tools repository if you haven't already
-git clone https://github.com/your-org/cubejs-dev-tools.git
-cd cubejs-dev-tools
+mkdir -p ~/projects/cubejs-dev-tools/branches
+cd ~/projects/cubejs-dev-tools
+git clone --separate-git-dir git git@github.com:reorc/cubejs-dev-tools.git branches/main
+cd branches/main
 
 # Set up the Cube.js repository with multiple branches
 ./setup/setup_cube_repo.sh
@@ -347,7 +349,7 @@ Build the base Docker image using the `reorc` branch:
 
 ```bash
 # Navigate back to the cubejs-dev-tools directory
-cd ~/projects/cubejs-dev-tools
+cd ~/projects/cubejs-dev-tools/branches/main
 
 # Build the base image with the reorc branch
 ./production/build_base_image.sh --image-name your-org/cubejs-custom --image-tag latest --branch reorc

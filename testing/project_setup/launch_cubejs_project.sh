@@ -179,7 +179,7 @@ setup_database() {
     
     # Run the database setup script
     print_status "Running database setup script: $db_setup_script"
-    sudo bash "$db_setup_script"
+    bash "$db_setup_script"
     
     # Update database connection details based on the database type
     case "$db_type" in
@@ -279,7 +279,7 @@ services:
     container_name: cubejs-${PROJECT_NAME}
     ports:
       - "${REST_API_PORT}:4000"
-      - "${SQL_API_PORT}:5432"
+      - "${SQL_API_PORT}:15432"
     volumes:
       - .:/cube/conf
     environment:
@@ -423,6 +423,7 @@ while [[ $# -gt 0 ]]; do
         --project-name)
             PROJECT_NAME="$2"
             PROJECT_DIR="$HOME/projects/$PROJECT_NAME"
+            MODELS_DIR="$PROJECT_DIR/model"
             shift 2
             ;;
         --project-dir)
@@ -471,10 +472,12 @@ main() {
         # Setup mode
         print_status "Starting Cube.js project setup with $DB_TYPE database..."
         print_status "Project name: $PROJECT_NAME"
-        print_status "Project directory: $PROJECT_DIR"
-        
+        print_status "Project directory: $PROJECT_DIR"        
+
         # Check if Docker is installed
         install_docker
+
+        
         
         # Install Node.js and npm if not already installed
         install_nodejs 20.x
