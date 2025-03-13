@@ -20,7 +20,7 @@ cubejs-dev-tools/
 The `setup/setup_cube_repo.sh` script helps you set up the Cube.js repository with multiple branches for development:
 
 ```bash
-sudo ./setup/setup_cube_repo.sh
+./setup/setup_cube_repo.sh
 ```
 
 This script:
@@ -116,7 +116,7 @@ The testing directory contains scripts to set up various databases for testing C
 #### PostgreSQL
 
 ```bash
-sudo ./testing/db_setup/setup_postgres.sh
+./testing/db_setup/setup_postgres.sh
 ```
 
 Sets up a PostgreSQL database using Docker Compose with:
@@ -127,7 +127,7 @@ Sets up a PostgreSQL database using Docker Compose with:
 #### MySQL
 
 ```bash
-sudo ./testing/db_setup/setup_mysql.sh
+./testing/db_setup/setup_mysql.sh
 ```
 
 Sets up a MySQL database using Docker Compose with:
@@ -138,7 +138,7 @@ Sets up a MySQL database using Docker Compose with:
 #### DorisDB
 
 ```bash
-sudo ./testing/db_setup/setup_dorisdb.sh
+./testing/db_setup/setup_dorisdb.sh
 ```
 
 Sets up a DorisDB instance using Docker Compose with:
@@ -216,7 +216,7 @@ git clone https://github.com/your-org/cubejs-dev-tools.git
 cd cubejs-dev-tools
 
 # Set up the Cube.js repository with multiple branches
-sudo ./setup/setup_cube_repo.sh
+./setup/setup_cube_repo.sh
 ```
 
 This creates a structured directory at `~/projects/cube` with the Cube.js codebase and multiple branches for development.
@@ -238,7 +238,7 @@ Set up a PostgreSQL database for testing (you can choose MySQL or DorisDB instea
 
 ```bash
 # Set up PostgreSQL using Docker
-sudo ./testing/db_setup/setup_postgres.sh
+./testing/db_setup/setup_postgres.sh
 ```
 
 This creates a PostgreSQL database running in Docker, accessible on port 5432 with credentials `postgres/postgres`.
@@ -314,7 +314,7 @@ First, make sure you have the Cube.js repository set up with the necessary branc
 
 ```bash
 # Set up the Cube.js repository if you haven't already
-sudo ./setup/setup_cube_repo.sh
+./setup/setup_cube_repo.sh
 ```
 
 This script should have already set up multiple branches, including the `reorc` branch with your custom code.
