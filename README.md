@@ -84,12 +84,12 @@ Sets up the Cube.js Playground environment:
 
 ### Test Project Setup
 
-The `development/cube/setup_project/` directory contains scripts for setting up test projects:
+The `development/cube/setup_env/` directory contains scripts for setting up test projects:
 
 #### Setup Test Project
 
 ```bash
-./development/cube/setup_project/setup_test_project.sh
+./development/cube/setup_env/setup_test_project.sh
 ```
 
 Creates a complete test project for Cube.js development:
@@ -97,15 +97,6 @@ Creates a complete test project for Cube.js development:
 - Configures database connections
 - Creates sample schema files
 - Loads test data into the database
-
-#### Test Schemas
-
-The `development/cube/setup_project/schemas/` directory contains SQL scripts for setting up test data:
-- `create_tables.sql` - Creates sample tables for testing
-- `insert_orders.sql` - Inserts sample order data
-- `insert_order_items.sql` - Inserts sample order item data
-- `insert_products.sql` - Inserts sample product data
-- `setup_database.sh` - Script to run all SQL scripts and set up the test database
 
 ## Testing
 
@@ -123,6 +114,7 @@ Sets up a PostgreSQL database using Docker Compose with:
 - PostgreSQL 16.1
 - Default credentials (postgres/postgres)
 - Exposed on port 5432
+- Includes database-specific schema files in `postgres_schemas/`
 
 #### MySQL
 
@@ -134,6 +126,7 @@ Sets up a MySQL database using Docker Compose with:
 - MySQL 8.0
 - Default credentials (root/mysql)
 - Exposed on port 3306
+- Includes database-specific schema files in `mysql_schemas/`
 
 #### DorisDB
 
@@ -145,6 +138,16 @@ Sets up a DorisDB instance using Docker Compose with:
 - Latest DorisDB version
 - Default credentials
 - Exposed on standard DorisDB ports
+- Includes database-specific schema files in `doris_schemas/`
+
+### Database Schemas
+
+Each database type has its own schema directory under `testing/db_setup/{db_type}_schemas/` containing:
+- `create_tables.sql` - Creates sample tables for testing
+- `insert_orders.sql` - Inserts sample order data
+- `insert_order_items.sql` - Inserts sample order item data
+- `insert_products.sql` - Inserts sample product data
+- `setup_database.sh` - Script to run all SQL scripts and set up the test database
 
 ## Production
 
@@ -155,23 +158,26 @@ The production directory contains scripts for building Docker images:
 #### Base Image
 
 ```bash
-./production/build_base_image.sh [--image-name NAME] [--image-tag TAG]
+./production/build_base_image.sh [--image-name NAME] [--image-tag TAG] [--branch BRANCH]
 ```
 
 Builds a base Docker image for Cube.js with:
 - Node.js and required dependencies
 - Configurable image name and tag
+- Support for building from specific branches
+- Enhanced build process using updated Dockerfile
 
 #### Final Image
 
 ```bash
-./production/build_final_image.sh [--image-name NAME] [--image-tag TAG]
+./production/build_final_image.sh [--image-name NAME] [--image-tag TAG] [--branch BRANCH]
 ```
 
 Builds a production-ready Docker image with:
 - Optimized for production use
 - Minimal dependencies
 - Configurable image name and tag
+- Support for building from specific branches
 
 #### DorisDB Driver
 
@@ -279,7 +285,7 @@ Set up a test project with sample data for development:
 
 ```bash
 # Create a test project with sample data
-./development/cube/setup_project/setup_test_project.sh
+./development/cube/setup_env/setup_test_project.sh
 ```
 
 This creates a new Cube.js project at `~/projects/cubejs-test-project` with:
