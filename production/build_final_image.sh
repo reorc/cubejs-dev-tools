@@ -77,7 +77,7 @@ main() {
     
     # Default values
     local base_image="reorc/cube:latest"
-    local new_image_name="reorc/cubejs-official"
+    local new_image_name="reorc/cube-official"
     local new_image_tag="latest"
     
     # Parse command line arguments
