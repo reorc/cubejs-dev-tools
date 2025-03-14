@@ -153,11 +153,11 @@ cubes:
     joins:
       - name: Orders
         relationship: many_to_one
-        sql_on: \${OrderItems.order_id} = \${Orders.id}
+        sql_on: "{OrderItems.order_id} = {Orders.id}"
       
       - name: Products
-        relationship: many_to_one
-        sql_on: \${OrderItems.product_id} = \${Products.id}
+        relationship: one_to_one
+        sql_on: "{OrderItems.product_id} = {Products.id}"
 EOF
     
     print_success "Cube.js data models created successfully"
@@ -166,6 +166,7 @@ EOF
 # Function to setup the database
 setup_database() {
     local db_type="$1"
+    local force_reinstall="${2:-false}"  # New parameter with default value false
     
     print_section "Setting up $db_type database"
     
@@ -176,29 +177,53 @@ setup_database() {
         print_error "Database setup script not found: $db_setup_script"
         exit 1
     fi
-    
-    # Run the database setup script
-    print_status "Running database setup script: $db_setup_script"
-    bash "$db_setup_script"
-    
-    # Update database connection details based on the database type
+
+    # Function to check if database is running and accessible
+    check_database_connection() {
+        local db_type="$1"
+        local host="$2"
+        local port="$3"
+        local user="$4"
+        local password="$5"
+        local dbname="$6"
+
+        case "$db_type" in
+            postgres)
+                PGPASSWORD="$password" psql -h "$host" -p "$port" -U "$user" -d "$dbname" -c "SELECT 1" &>/dev/null
+                return $?
+                ;;
+            mysql)
+                mysql -h "$host" -P "$port" -u "$user" -p"$password" -e "SELECT 1" &>/dev/null
+                return $?
+                ;;
+            doris)
+                mysql -h "$host" -P "$port" -u "$user" -p"$password" -e "SELECT 1" &>/dev/null
+                return $?
+                ;;
+            *)
+                return 1
+                ;;
+        esac
+    }
+
+    # Set default connection parameters based on database type
     case "$db_type" in
         postgres)
             DB_USER="postgres"
             DB_PASSWORD="postgres"
-            DB_NAME="postgres"
+            DB_NAME="test"
             DB_PORT=5432
             ;;
         mysql)
             DB_USER="root"
-            DB_PASSWORD="mysql"
-            DB_NAME="cubejs"
+            DB_PASSWORD="password"
+            DB_NAME="test"
             DB_PORT=3306
             ;;
         doris)
             DB_USER="root"
             DB_PASSWORD="root"
-            DB_NAME="cubejs"
+            DB_NAME="test"
             DB_PORT=9030
             ;;
         *)
@@ -206,32 +231,62 @@ setup_database() {
             exit 1
             ;;
     esac
+
+    # Check if database exists and is working
+    if [ "$force_reinstall" != "true" ]; then
+        print_status "Checking if $db_type database is already running and accessible..."
+        if check_database_connection "$db_type" "$DB_HOST" "$DB_PORT" "$DB_USER" "$DB_PASSWORD" "$DB_NAME"; then
+            print_success "$db_type database is already running and accessible"
+            return 0
+        else
+            print_status "$db_type database is not accessible, proceeding with setup"
+        fi
+    else
+        print_status "Force reinstall option enabled - will delete existing database if present"
+    fi
     
-    print_success "$db_type database setup completed"
+    # Run the database setup script with force_reinstall parameter
+    print_status "Running database setup script: $db_setup_script"
+    if [ "$force_reinstall" = "true" ]; then
+        bash "$db_setup_script" --force
+    else
+        bash "$db_setup_script"
+    fi
+    
+    # After database is set up, populate it with data
+    populate_database "$db_type"
 }
 
-# Function to create and populate the database
+# Function to populate the database with sample data
 populate_database() {
     local db_type="$1"
+    local schemas_dir="$HOME/projects/cubejs-dev-tools/branches/main/testing/db_setup/${db_type}_schemas"
     
     print_section "Populating $db_type database with sample data"
     
-    # Copy SQL schema files to the project directory
-    mkdir -p "$PROJECT_DIR/schema"
-    cp "$SCHEMAS_DIR/create_tables.sql" "$PROJECT_DIR/schema/"
-    cp "$SCHEMAS_DIR/insert_products.sql" "$PROJECT_DIR/schema/"
-    cp "$SCHEMAS_DIR/insert_orders.sql" "$PROJECT_DIR/schema/"
-    cp "$SCHEMAS_DIR/insert_order_items.sql" "$PROJECT_DIR/schema/"
+    # Check if schemas directory exists
+    if [ ! -d "$schemas_dir" ]; then
+        print_error "Schemas directory not found: $schemas_dir"
+        exit 1
+    fi
     
-    # Copy setup_database.sh script
-    cp "$SCHEMAS_DIR/setup_database.sh" "$PROJECT_DIR/"
-    chmod +x "$PROJECT_DIR/setup_database.sh"
+    # Create a temporary .env file with database connection details
+    cat > "$schemas_dir/.env" << EOF
+CUBEJS_DB_HOST=$DB_HOST
+CUBEJS_DB_PORT=$DB_PORT
+CUBEJS_DB_NAME=$DB_NAME
+CUBEJS_DB_USER=$DB_USER
+CUBEJS_DB_PASS=$DB_PASSWORD
+EOF
     
     # Run the setup_database.sh script
-    cd "$PROJECT_DIR"
-    ./setup_database.sh
+    print_status "Running database population script"
+    (cd "$schemas_dir" && bash setup_database.sh)
     
-    print_success "Database populated with sample data"
+    # Clean up the temporary .env file
+    rm -f "$schemas_dir/.env"
+    
+    print_success "Database populated successfully"
 }
 
 # Function to create .env file
@@ -438,6 +493,10 @@ while [[ $# -gt 0 ]]; do
             SQL_API_PORT="$2"
             shift 2
             ;;
+        --force-reinstall-db)
+            FORCE_REINSTALL_DB="true"
+            shift
+            ;;
         --cleanup)
             OPERATION_MODE="cleanup"
             shift
@@ -451,6 +510,7 @@ while [[ $# -gt 0 ]]; do
             print_status "  --project-dir DIR    Set project directory (default: $HOME/projects/[project-name])"
             print_status "  --rest-port PORT     Set REST API port (default: auto-detected starting from 4000)"
             print_status "  --sql-port PORT      Set SQL API port (default: auto-detected starting from 15432)"
+            print_status "  --force-reinstall-db Force delete and reinstall database if it exists"
             print_status "  --cleanup            Clean up the project (remove container and project directory)"
             print_status "  --help               Show this help message"
             exit 0
@@ -476,8 +536,6 @@ main() {
 
         # Check if Docker is installed
         install_docker
-
-        
         
         # Install Node.js and npm if not already installed
         install_nodejs 20.x
@@ -506,11 +564,8 @@ main() {
         echo "${REST_API_PORT}" > "$PROJECT_DIR/.cubejs_port"
         echo "${SQL_API_PORT}" > "$PROJECT_DIR/.cubesql_port"
         
-        # Setup the database
-        setup_database "$DB_TYPE"
-        
-        # Create and populate the database
-        populate_database "$DB_TYPE"
+        # Setup the database with force_reinstall option if specified
+        setup_database "$DB_TYPE" "${FORCE_REINSTALL_DB:-false}"
         
         # Create Cube.js data model files
         create_cube_models
