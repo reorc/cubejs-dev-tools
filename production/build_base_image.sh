@@ -3,6 +3,9 @@
 # Source common utilities
 source "$(dirname "$0")/../common/utils.sh"
 
+# Get absolute path of the script directory
+SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
+
 # Set up base directories
 BASE_DIR=~/projects/cube
 BRANCHES_DIR=$BASE_DIR/branches
@@ -86,6 +89,13 @@ print_status "========================================================"
 print_status "Showing changes from reorc branch compared to master..."
 print_status "========================================================"
 git fetch origin reorc
+
+# Capture changed packages into a variable
+print_status "Analyzing changed packages..."
+CHANGED_PACKAGES=$(git diff --name-only origin/master origin/reorc | grep "^packages/" | cut -d'/' -f2 | sort -u)
+print_status "Changed packages:"
+echo "$CHANGED_PACKAGES"
+
 print_status "Files changed in reorc branch:"
 git diff --name-status origin/master origin/reorc
 
@@ -109,6 +119,35 @@ print_status "Release branch is at: $BRANCHES_DIR/$RELEASE_BRANCH"
 # Setup dependencies (Node.js, Yarn, Docker)
 setup_dependencies
 
+# Build steps in the root directory
+print_status "Installing dependencies and building packages in root directory..."
+cd "$BRANCHES_DIR/$RELEASE_BRANCH" || {
+    print_error "Error: Failed to change to release branch root directory!"
+    exit 1
+}
+
+print_status "Running yarn install..."
+yarn install
+
+print_status "Running yarn build..."
+yarn build
+
+print_status "Running yarn lerna run build..."
+yarn lerna run build
+
+# Ensure cubejs-docker/packages directory exists
+print_status "Setting up cubejs-docker packages directory..."
+mkdir -p "$BRANCHES_DIR/$RELEASE_BRANCH/packages/cubejs-docker/packages"
+
+# Copy updated packages
+print_status "Copying updated packages to cubejs-docker/packages..."
+for package in $CHANGED_PACKAGES; do
+    if [ -d "$BRANCHES_DIR/$RELEASE_BRANCH/packages/$package" ]; then
+        print_status "Copying package: $package"
+        cp -r "$BRANCHES_DIR/$RELEASE_BRANCH/packages/$package" "$BRANCHES_DIR/$RELEASE_BRANCH/packages/cubejs-docker/packages/"
+    fi
+done
+
 # Install dependencies in packages/cubejs-docker
 print_status "Installing dependencies in cubejs-docker..."
 cd "$BRANCHES_DIR/$RELEASE_BRANCH/packages/cubejs-docker" || {
@@ -121,8 +160,12 @@ yarn install
 print_status "Copying yarn.lock for Docker build..."
 cp "$BRANCHES_DIR/$RELEASE_BRANCH/yarn.lock" .
 
+# Copy updated.Dockerfile from production directory
+print_status "Copying updated.Dockerfile for Docker build..."
+cp "$SCRIPT_DIR/updated.Dockerfile" .
+
 # Build the image using sudo to ensure permissions
 print_status "Building Cube.js Docker image as $IMAGE_NAME:$IMAGE_TAG..."
-sudo docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f latest.Dockerfile .
+docker build -t "$IMAGE_NAME:$IMAGE_TAG" -f updated.Dockerfile . --no-cache
 
 print_success "Build complete! The image is tagged as $IMAGE_NAME:$IMAGE_TAG" 

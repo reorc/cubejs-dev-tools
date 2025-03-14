@@ -28,7 +28,7 @@ CMD ["cubejs", "server"]
 EOF
     
     print_status "Building Docker image: ${new_image_name}:${new_image_tag}"
-    sudo docker build -t "${new_image_name}:${new_image_tag}" -f "$dockerfile" .
+    sudo docker build -t "${new_image_name}:${new_image_tag}" -f "$dockerfile" . --no-cache
     
     # Tag the image with latest if it's not already the tag
     if [ "$new_image_tag" != "latest" ]; then

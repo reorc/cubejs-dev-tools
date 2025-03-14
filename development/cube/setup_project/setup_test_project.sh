@@ -5,6 +5,7 @@ set -e
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[0;33m'
+RED='\033[0;31m'
 NC='\033[0m' # No Color
 
 # Function to print status messages
@@ -20,17 +21,61 @@ print_warning() {
   echo -e "${YELLOW}$1${NC}"
 }
 
+print_error() {
+  echo -e "${RED}$1${NC}"
+}
+
 # Define paths
 CUBE_DEV_TOOLS_DIR="$HOME/projects/cubejs-dev-tools/branches/main"
 CUBE_REPO_DIR="$HOME/projects/cube/branches/develop"
 TEST_PROJECT_DIR="$HOME/projects/cubejs-test-project"
-SCHEMAS_DIR="$CUBE_DEV_TOOLS_DIR/development/cube/setup_project/schemas"
+POSTGRES_SCHEMAS_DIR="$CUBE_DEV_TOOLS_DIR/testing/db_setup/postgres_schemas"
 
-# PostgreSQL credentials (matching setup_postgres.sh)
+# PostgreSQL credentials (matching testing/db_setup/setup_postgres.sh)
 POSTGRES_ADMIN_USER="postgres"
 POSTGRES_PASSWORD="postgres"
 POSTGRES_DB="postgres"
 POSTGRES_PORT=5432
+
+# Check and setup PostgreSQL if needed
+print_status "Checking PostgreSQL setup..."
+POSTGRES_SETUP_SCRIPT="$CUBE_DEV_TOOLS_DIR/testing/db_setup/setup_postgres.sh"
+
+check_postgres() {
+    if ! docker ps | grep -q "postgres"; then
+        return 1
+    fi
+    
+    # Try to connect to verify the instance is working
+    if ! docker exec postgres pg_isready -U $POSTGRES_ADMIN_USER &>/dev/null; then
+        return 1
+    fi
+    
+    return 0
+}
+
+if ! check_postgres; then
+    print_status "Valid PostgreSQL instance not found. Setting up PostgreSQL..."
+    if [ -f "$POSTGRES_SETUP_SCRIPT" ]; then
+        chmod +x "$POSTGRES_SETUP_SCRIPT"
+        "$POSTGRES_SETUP_SCRIPT"
+        
+        # Wait a bit for PostgreSQL to be fully ready
+        print_status "Waiting for PostgreSQL to be fully ready..."
+        sleep 10
+        
+        if ! check_postgres; then
+            print_error "Failed to set up PostgreSQL. Please check the logs and try again."
+            exit 1
+        fi
+        print_success "PostgreSQL setup completed successfully!"
+    else
+        print_error "PostgreSQL setup script not found at: $POSTGRES_SETUP_SCRIPT"
+        exit 1
+    fi
+else
+    print_success "Valid PostgreSQL instance found and running."
+fi
 
 # Check if Cube.js CLI is installed
 if ! command -v cubejs &> /dev/null; then
@@ -74,22 +119,6 @@ else
     print_status "node-fetch is already installed."
 fi
 
-# Check if PostgreSQL is running via Docker
-print_status "Checking PostgreSQL status..."
-if docker ps | grep -q "postgres"; then
-    print_status "PostgreSQL container is already running"
-else
-    print_warning "PostgreSQL container is not running. Please run setup_postgres.sh first."
-    print_warning "You can find it at: testing/db_setup/setup_postgres.sh"
-    
-    # Ask if user wants to continue anyway
-    read -p "Do you want to continue anyway? (y/n): " continue_anyway
-    if [[ "$continue_anyway" != "y" && "$continue_anyway" != "Y" ]]; then
-        print_warning "Exiting. Please run setup_postgres.sh first."
-        exit 1
-    fi
-fi
-
 # Create .env file with database configuration
 print_status "Creating .env file with database configuration..."
 cat > "$TEST_PROJECT_DIR/.env" << EOL
@@ -114,16 +143,16 @@ EOL
 print_status "Creating schema directory..."
 mkdir -p "$TEST_PROJECT_DIR/model/schema"
 
-# Copy SQL schema files
+# Copy SQL schema files from testing/db_setup/postgres_schemas
 print_status "Copying SQL schema files..."
-cp "$SCHEMAS_DIR/create_tables.sql" "$TEST_PROJECT_DIR/model/schema/"
-cp "$SCHEMAS_DIR/insert_products.sql" "$TEST_PROJECT_DIR/model/schema/"
-cp "$SCHEMAS_DIR/insert_orders.sql" "$TEST_PROJECT_DIR/model/schema/"
-cp "$SCHEMAS_DIR/insert_order_items.sql" "$TEST_PROJECT_DIR/model/schema/"
+cp "$POSTGRES_SCHEMAS_DIR/create_tables.sql" "$TEST_PROJECT_DIR/model/schema/"
+cp "$POSTGRES_SCHEMAS_DIR/insert_products.sql" "$TEST_PROJECT_DIR/model/schema/"
+cp "$POSTGRES_SCHEMAS_DIR/insert_orders.sql" "$TEST_PROJECT_DIR/model/schema/"
+cp "$POSTGRES_SCHEMAS_DIR/insert_order_items.sql" "$TEST_PROJECT_DIR/model/schema/"
 
 # Copy setup_database.sh script
 print_status "Copying setup_database.sh script..."
-cp "$SCHEMAS_DIR/setup_database.sh" "$TEST_PROJECT_DIR/"
+cp "$POSTGRES_SCHEMAS_DIR/setup_database.sh" "$TEST_PROJECT_DIR/"
 
 # Set up the database
 print_status "Setting up the database..."
