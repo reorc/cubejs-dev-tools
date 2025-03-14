@@ -77,8 +77,8 @@ print_section "Cleaning up existing data"
 if [ -d "$DORISDB_COMPOSE_DIR" ]; then
     cd $DORISDB_COMPOSE_DIR 2>/dev/null && docker-compose down -v 2>/dev/null || true
 fi
-rm -rf $DORISDB_DATA_DIR
-rm -rf $DORISDB_LOG_DIR
+sudo rm -rf $DORISDB_DATA_DIR
+sudo rm -rf $DORISDB_LOG_DIR
 
 # Create directories if they don't exist
 print_section "Setting up directories"

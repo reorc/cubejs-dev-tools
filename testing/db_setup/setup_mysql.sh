@@ -74,7 +74,7 @@ print_section "Cleaning up existing data"
 if [ -d "$MYSQL_COMPOSE_DIR" ]; then
     cd $MYSQL_COMPOSE_DIR 2>/dev/null && docker-compose down -v 2>/dev/null || true
 fi
-rm -rf $MYSQL_DATA_DIR
+sudo rm -rf $MYSQL_DATA_DIR
 
 # Create directories if they don't exist
 print_section "Setting up directories"
