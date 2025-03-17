@@ -25,9 +25,33 @@ print_error() {
   echo -e "${RED}$1${NC}"
 }
 
+# Function to convert branch name to directory name (same as in setup_cube_repo.sh)
+convert_branch_to_dirname() {
+    echo "${1//\//--}"
+}
+
+# Parse command line arguments
+DEVELOP_BRANCH="develop"  # Default value
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --develop)
+            DEVELOP_BRANCH="$2"
+            shift 2
+            ;;
+        *)
+            print_warning "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Convert branch name to directory name
+DEVELOP_DIR_NAME=$(convert_branch_to_dirname "$DEVELOP_BRANCH")
+
 # Define paths
 CUBE_DEV_TOOLS_DIR="$HOME/projects/cubejs-dev-tools/branches/main"
-CUBE_REPO_DIR="$HOME/projects/cube/branches/develop"
+CUBE_REPO_DIR="$HOME/projects/cube/branches/${DEVELOP_DIR_NAME}"
 TEST_PROJECT_DIR="$HOME/projects/cubejs-test-project"
 POSTGRES_SCHEMAS_DIR="$CUBE_DEV_TOOLS_DIR/testing/db_setup/postgres_schemas"
 
@@ -152,12 +176,12 @@ cp "$POSTGRES_SCHEMAS_DIR/insert_order_items.sql" "$TEST_PROJECT_DIR/model/schem
 
 # Copy setup_database.sh script
 print_status "Copying setup_database.sh script..."
-cp "$POSTGRES_SCHEMAS_DIR/setup_database.sh" "$TEST_PROJECT_DIR/"
+cp "$POSTGRES_SCHEMAS_DIR/setup_database.sh" "$TEST_PROJECT_DIR/model/schema/"
 
 # Set up the database
 print_status "Setting up the database..."
-chmod +x "$TEST_PROJECT_DIR/setup_database.sh"
-cd "$TEST_PROJECT_DIR"
+chmod +x "$TEST_PROJECT_DIR/model/schema/setup_database.sh"
+cd "$TEST_PROJECT_DIR/model/schema"
 ./setup_database.sh
 
 print_success "Test project setup completed successfully!"

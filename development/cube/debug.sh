@@ -11,6 +11,30 @@ print_section() {
     print_status "=== $1 ==="
 }
 
+# Function to convert branch name to directory name (same as in setup_cube_repo.sh)
+convert_branch_to_dirname() {
+    echo "${1//\//--}"
+}
+
+# Parse command line arguments
+DEVELOP_BRANCH="develop"  # Default value
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --develop)
+            DEVELOP_BRANCH="$2"
+            shift 2
+            ;;
+        *)
+            print_warning "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Convert branch name to directory name
+DEVELOP_DIR_NAME=$(convert_branch_to_dirname "$DEVELOP_BRANCH")
+
 # Function to kill processes by port
 kill_process_by_port() {
   local port=$1
@@ -52,7 +76,7 @@ link_package() {
 }
 
 # Define paths
-CUBE_REPO_PATH=~/projects/cube/branches/develop
+CUBE_REPO_PATH=~/projects/cube/branches/${DEVELOP_DIR_NAME}
 CUBESQL_PATH=${CUBE_REPO_PATH}/rust/cubesql
 TEST_PROJECT_PATH=~/projects/cubejs-test-project
 CUBESQL_EXECUTABLE=${CUBESQL_PATH}/target/debug/cubesqld

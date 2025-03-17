@@ -6,8 +6,32 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$PROJECT_ROOT/common/utils.sh"
 
+# Function to convert branch name to directory name (same as in setup_cube_repo.sh)
+convert_branch_to_dirname() {
+    echo "${1//\//--}"
+}
+
+# Parse command line arguments
+DEVELOP_BRANCH="develop"  # Default value
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --develop)
+            DEVELOP_BRANCH="$2"
+            shift 2
+            ;;
+        *)
+            print_warning "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Convert branch name to directory name
+DEVELOP_DIR_NAME=$(convert_branch_to_dirname "$DEVELOP_BRANCH")
+
 # Define the target directory for the develop branch
-CUBE_DEVELOP_DIR=~/projects/cube/branches/develop
+CUBE_DEVELOP_DIR=~/projects/cube/branches/${DEVELOP_DIR_NAME}
 VSCODE_DIR="${CUBE_DEVELOP_DIR}/.vscode"
 LAUNCH_JSON="${VSCODE_DIR}/launch.json"
 

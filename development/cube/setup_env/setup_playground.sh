@@ -12,10 +12,34 @@ print_status() {
   echo -e "${BLUE}$1${NC}"
 }
 
+# Function to convert branch name to directory name (same as in setup_cube_repo.sh)
+convert_branch_to_dirname() {
+    echo "${1//\//--}"
+}
+
 # Source the common utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 source "$PROJECT_ROOT/common/utils.sh"
+
+# Parse command line arguments
+DEVELOP_BRANCH="develop"  # Default value
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --develop)
+            DEVELOP_BRANCH="$2"
+            shift 2
+            ;;
+        *)
+            print_warning "Unknown option: $1"
+            exit 1
+            ;;
+    esac
+done
+
+# Convert branch name to directory name
+DEVELOP_DIR_NAME=$(convert_branch_to_dirname "$DEVELOP_BRANCH")
 
 # Make sure Rust is installed and in the PATH
 install_rust
@@ -23,11 +47,11 @@ install_rust
 # Define paths
 CUBE_BASE_DIR=~/projects/cube
 CUBE_BRANCHES_DIR=$CUBE_BASE_DIR/branches
-DEVELOP_BRANCH_DIR=$CUBE_BRANCHES_DIR/develop
+DEVELOP_BRANCH_DIR=$CUBE_BRANCHES_DIR/${DEVELOP_DIR_NAME}
 
 # Check if the repository structure exists
 if [ ! -d "$DEVELOP_BRANCH_DIR" ]; then
-    print_status "Error: Cube.js develop branch directory not found at $DEVELOP_BRANCH_DIR"
+    print_status "Error: Cube.js branch directory not found at $DEVELOP_BRANCH_DIR"
     print_status "Please run setup_cube_repo.sh first to set up the repository structure"
     exit 1
 fi

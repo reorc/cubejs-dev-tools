@@ -20,13 +20,15 @@ cubejs-dev-tools/
 The `setup/setup_cube_repo.sh` script helps you set up the Cube.js repository with multiple branches for development:
 
 ```bash
-./setup/setup_cube_repo.sh
+./setup/setup_cube_repo.sh [--cube-develop BRANCH] [--doris-develop BRANCH]
 ```
 
 This script:
 - Clones the Cube.js repository
 - Sets up multiple branches in separate directories
 - Creates a shared Git directory for efficient storage
+- Supports custom develop branch names for both Cube.js and Cube.js Doris driver repositories
+- Automatically converts branch names with slashes to use dashes (e.g., "feature/new-feature" becomes "feature--new-feature")
 
 ## Development
 
@@ -35,14 +37,15 @@ This script:
 The `development/cube/debug.sh` script sets up a Cube.js debugging environment:
 
 ```bash
-./development/cube/debug.sh [options]
+./development/cube/debug.sh [--develop BRANCH]
 ```
 
 Features:
 - Kills existing processes on relevant ports
 - Sets up environment variables for debugging
 - Starts Cube.js in development mode
-- Provides options for customizing the debug environment
+- Supports custom develop branch name
+- Automatically converts branch names with slashes to use dashes
 
 ### Environment Setup Scripts
 
@@ -63,24 +66,26 @@ Installs all necessary dependencies for Cube.js development:
 #### Setup Debugger
 
 ```bash
-./development/cube/setup_env/setup_debugger.sh
+./development/cube/setup_env/setup_debugger.sh [--develop BRANCH]
 ```
 
 Configures VSCode for debugging Cube.js:
 - Creates a `.vscode/launch.json` configuration
 - Sets up Node.js debugging configurations
 - Configures breakpoints and debugging settings
+- Supports custom develop branch name
 
 #### Setup Playground
 
 ```bash
-./development/cube/setup_env/setup_playground.sh
+./development/cube/setup_env/setup_playground.sh [--develop BRANCH]
 ```
 
 Sets up the Cube.js Playground environment:
 - Configures the Playground for local development
 - Ensures all dependencies are installed
 - Prepares the environment for interactive testing
+- Supports custom develop branch name
 
 ### Test Project Setup
 
@@ -89,7 +94,7 @@ The `development/cube/setup_env/` directory contains scripts for setting up test
 #### Setup Test Project
 
 ```bash
-./development/cube/setup_env/setup_test_project.sh
+./development/cube/setup_env/setup_test_project.sh [--develop BRANCH]
 ```
 
 Creates a complete test project for Cube.js development:
@@ -97,6 +102,7 @@ Creates a complete test project for Cube.js development:
 - Configures database connections
 - Creates sample schema files
 - Loads test data into the database
+- Supports custom develop branch name
 
 ## Testing
 
