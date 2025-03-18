@@ -5,6 +5,9 @@ if [ -f .env ]; then
   export $(grep -v '^#' .env | xargs)
 fi
 
+# Get the directory where the script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+
 # Set default values if not found in .env
 DB_HOST=${CUBEJS_DB_HOST:-"127.0.0.1"}
 DB_PORT=${CUBEJS_DB_PORT:-"5432"}
@@ -16,12 +19,12 @@ DB_PASS=${CUBEJS_DB_PASS:-"postgres"}
 execute_sql_file() {
     local file=$1
     echo "Executing $file..."
-    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$file"
+    PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$SCRIPT_DIR/$file"
 }
 
 # Create database if it doesn't exist
 echo "Creating database if it doesn't exist..."
-PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "postgres" -c "CREATE DATABASE $DB_NAME;"
+PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "postgres" -c "CREATE DATABASE $DB_NAME;" 2>/dev/null || true
 
 # Execute SQL files in order
 echo "Creating tables..."
