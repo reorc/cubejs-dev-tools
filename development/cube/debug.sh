@@ -16,8 +16,75 @@ convert_branch_to_dirname() {
     echo "${1//\//--}"
 }
 
+# Function to unlink packages
+unlink_packages() {
+    local yarn_link_dir="$HOME/.config/yarn/link/@cubejs-backend"
+    
+    # Check if the Cube.js link directory exists
+    if [[ ! -d "$yarn_link_dir" ]]; then
+        print_success "No Cube.js packages are globally linked."
+        return 0
+    fi
+    
+    print_warning "Found linked packages:"
+    
+    # Get list of actually linked packages
+    for link in "$yarn_link_dir"/*; do
+        if [[ -L "$link" ]]; then  # Check if it's a symbolic link
+            local package_name="@cubejs-backend/$(basename "$link")"
+            local target_path=$(readlink -f "$link")
+            print_warning "  $package_name -> $target_path"
+            
+            # Remove the global link
+            print_warning "Removing global link for $package_name"
+            rm -f "$link"
+        fi
+    done
+    
+    # Check if @cubejs-backend directory is empty and remove it if it is
+    if [[ -d "$yarn_link_dir" ]] && [[ ! "$(ls -A "$yarn_link_dir")" ]]; then
+        rmdir "$yarn_link_dir"
+    fi
+    
+    print_success "Global package links removed!"
+}
+
+# Function to link a package
+link_package() {
+    local package_path=$1
+    local package_name=$2
+    
+    print_warning "Linking package: ${package_name}"
+    
+    # Register the package globally
+    cd ${package_path}
+    yarn link 2>/dev/null || true
+    
+    # Link the package in the test project
+    cd ${TEST_PROJECT_PATH}
+    yarn link ${package_name} 2>/dev/null || true
+}
+
+# Function to update launch configuration
+update_launch_config() {
+    local launch_config_file="${CUBE_REPO_PATH}/.vscode/launch.json"
+    
+    if [[ -f "$launch_config_file" ]]; then
+        print_warning "Updating launch.json with test project path: ${TEST_PROJECT_PATH}"
+        # Use sed to update the placeholder in launch.json
+        sed -i.bak "s|\"cwd\": \"{{TEST_PROJECT_PATH}}\"|\"cwd\": \"${TEST_PROJECT_PATH}\"|g" "$launch_config_file"
+        rm -f "${launch_config_file}.bak"
+        print_success "Launch configuration updated!"
+    else
+        print_error "launch.json not found at $launch_config_file"
+        print_error "Please run setup_debugger.sh first"
+        exit 1
+    fi
+}
+
 # Parse command line arguments
 DEVELOP_BRANCH="develop"  # Default value
+TEST_PROJECT_NAME="cubejs-test-project"  # Default project name
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -25,8 +92,13 @@ while [[ $# -gt 0 ]]; do
             DEVELOP_BRANCH="$2"
             shift 2
             ;;
+        --project-name)
+            TEST_PROJECT_NAME="$2"
+            shift 2
+            ;;
         *)
             print_warning "Unknown option: $1"
+            print_warning "Usage: $0 [--develop <branch>] [--project-name <name>]"
             exit 1
             ;;
     esac
@@ -59,26 +131,10 @@ kill_process_by_name() {
   fi
 }
 
-# Function to link a package
-link_package() {
-  local package_path=$1
-  local package_name=$2
-  
-  print_warning "Linking package: ${package_name}"
-  
-  # Register the package globally
-  cd ${package_path}
-  yarn link 2>/dev/null || true
-  
-  # Link the package in the test project
-  cd ${TEST_PROJECT_PATH}
-  yarn link ${package_name} 2>/dev/null || true
-}
-
 # Define paths
 CUBE_REPO_PATH=~/projects/cube/branches/${DEVELOP_DIR_NAME}
 CUBESQL_PATH=${CUBE_REPO_PATH}/rust/cubesql
-TEST_PROJECT_PATH=~/projects/cubejs-test-project
+TEST_PROJECT_PATH=~/projects/${TEST_PROJECT_NAME}
 CUBESQL_EXECUTABLE=${CUBESQL_PATH}/target/debug/cubesqld
 
 print_section "Starting Cube.js Debugging Environment"
@@ -108,7 +164,17 @@ kill_process_by_name "cubejs-server"
 print_status "Waiting for processes to terminate..."
 sleep 2
 
-print_section "Ensuring packages are properly linked"
+print_section "Cleaning up existing yarn links"
+unlink_packages
+
+print_section "Building TypeScript packages"
+cd ${CUBE_REPO_PATH}
+yarn build
+
+print_section "Updating VSCode launch configuration"
+update_launch_config
+
+print_section "Ensuring packages are properly linked from ${CUBE_REPO_PATH} to ${TEST_PROJECT_PATH}"
 
 # Core packages for API and query processing
 link_package "${CUBE_REPO_PATH}/packages/cubejs-api-gateway" "@cubejs-backend/api-gateway"

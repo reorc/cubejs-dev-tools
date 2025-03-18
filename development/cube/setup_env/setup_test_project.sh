@@ -32,6 +32,7 @@ convert_branch_to_dirname() {
 
 # Parse command line arguments
 DEVELOP_BRANCH="develop"  # Default value
+TEST_PROJECT_NAME="cubejs-test-project"  # Default project name
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -39,8 +40,13 @@ while [[ $# -gt 0 ]]; do
             DEVELOP_BRANCH="$2"
             shift 2
             ;;
+        --project-name)
+            TEST_PROJECT_NAME="$2"
+            shift 2
+            ;;
         *)
             print_warning "Unknown option: $1"
+            print_warning "Usage: $0 [--develop <branch>] [--project-name <name>]"
             exit 1
             ;;
     esac
@@ -52,7 +58,7 @@ DEVELOP_DIR_NAME=$(convert_branch_to_dirname "$DEVELOP_BRANCH")
 # Define paths
 CUBE_DEV_TOOLS_DIR="$HOME/projects/cubejs-dev-tools/branches/main"
 CUBE_REPO_DIR="$HOME/projects/cube/branches/${DEVELOP_DIR_NAME}"
-TEST_PROJECT_DIR="$HOME/projects/cubejs-test-project"
+TEST_PROJECT_DIR="$HOME/projects/${TEST_PROJECT_NAME}"
 POSTGRES_SCHEMAS_DIR="$CUBE_DEV_TOOLS_DIR/testing/db_setup/postgres_schemas"
 
 # PostgreSQL credentials (matching testing/db_setup/setup_postgres.sh)
@@ -115,7 +121,7 @@ if [ ! -d "$TEST_PROJECT_DIR" ]; then
     print_status "Creating a new test project..."
     mkdir -p "$HOME/projects"
     cd "$HOME/projects"
-    cubejs create cubejs-test-project
+    cubejs create "$TEST_PROJECT_NAME"
 else
     print_status "Test project already exists at $TEST_PROJECT_DIR"
 fi

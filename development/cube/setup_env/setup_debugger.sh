@@ -86,7 +86,7 @@ cat > "${LAUNCH_JSON}" << 'EOL'
       "name": "Launch Test Project",
       "program": "${workspaceFolder}/node_modules/.bin/cubejs-server",
       "args": [],
-      "cwd": "${HOME}/projects/cubejs-test-project",
+      "cwd": "{{TEST_PROJECT_PATH}}",
       "env": {
         "CUBEJS_DEV_MODE": "true",
         "CUBEJS_LOG_LEVEL": "trace"
