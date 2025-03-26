@@ -159,15 +159,15 @@ git fetch origin reorc
 
 # Capture changed packages into a variable
 print_status "Analyzing changed packages..."
-CHANGED_PACKAGES=$(git diff --name-only origin/master origin/reorc | grep "^packages/" | cut -d'/' -f2 | sort -u)
+CHANGED_PACKAGES=$(git diff --name-only origin/master...origin/reorc | grep "^packages/" | cut -d'/' -f2 | sort -u)
 print_status "Changed packages:"
 echo "$CHANGED_PACKAGES"
 
 print_status "Files changed in reorc branch:"
-git diff --name-status origin/master origin/reorc
+git diff --name-status origin/master...origin/reorc
 
 print_status "Detailed changes (showing diff):"
-git diff --color=always origin/master origin/reorc | less -R
+git diff --color=always origin/master...origin/reorc | less -R
 
 # Prompt for confirmation before merging
 read -p "Do you want to proceed with merging the reorc branch? (y/n): " confirm
