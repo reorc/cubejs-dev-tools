@@ -17,9 +17,10 @@ DEFAULT_IMAGE_TAG="latest"
 IMAGE_NAME=$DEFAULT_IMAGE_NAME
 IMAGE_TAG=$DEFAULT_IMAGE_TAG
 REMOTE_IMAGE_NAME="recurvedata/recurve-cube-base"
-REMOTE_IMAGE_TAG="base"
+REMOTE_IMAGE_TAG="latest"
 BUILD_IMAGE=true
 PUSH_IMAGE=true
+PUSH_SEMVER=true  # Whether to push with semantic version tag
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -43,11 +44,16 @@ while [[ $# -gt 0 ]]; do
         --build-only)
             BUILD_IMAGE=true
             PUSH_IMAGE=false
+            PUSH_SEMVER=false
             shift
             ;;
         --push-only)
             BUILD_IMAGE=false
             PUSH_IMAGE=true
+            shift
+            ;;
+        --no-semver)
+            PUSH_SEMVER=false
             shift
             ;;
         --help)
@@ -59,6 +65,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --remote-image-tag TAG    Set different image tag for pushing to Docker Hub"
             echo "  --build-only              Only build the Docker image, don't push"
             echo "  --push-only               Only push the Docker image, don't build"
+            echo "  --no-semver               Don't push with semantic version tag"
             echo "  --help                    Show this help message"
             echo
             echo "If neither --build-only nor --push-only is specified, both build and push will be performed."
@@ -80,6 +87,38 @@ fi
 if [ -z "$REMOTE_IMAGE_TAG" ]; then
     REMOTE_IMAGE_TAG=$IMAGE_TAG
 fi
+
+# Function to get the latest semantic version from Docker Hub and increment it
+get_next_semver() {
+    local image_name=$1
+    local current_version="0.0.0"
+    
+    print_status "Fetching latest semantic version for $image_name..." >&2
+    
+    # Get all tags from Docker Hub
+    local tags_json=$(curl -s "https://hub.docker.com/v2/repositories/${image_name}/tags/?page_size=100")
+    
+    # Parse tags that match semantic versioning pattern (x.y.z)
+    local semver_tags=$(echo "$tags_json" | grep -o '"name":"[0-9]\+\.[0-9]\+\.[0-9]\+"' | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+' | sort -t. -k1,1n -k2,2n -k3,3n)
+    
+    # If we found any semantic version tags, get the latest one
+    if [ -n "$semver_tags" ]; then
+        current_version=$(echo "$semver_tags" | tail -n 1)
+        print_status "Current latest version: $current_version" >&2
+    else
+        print_status "No existing semantic versions found, starting with 0.0.1" >&2
+        current_version="0.0.0"
+    fi
+    
+    # Split the version into components
+    IFS='.' read -r major minor patch <<< "$current_version"
+    
+    # Increment the patch version
+    patch=$((patch + 1))
+    
+    # Return the new version
+    echo "$major.$minor.$patch"
+}
 
 # Handle push-only operation early to skip build process
 if [ "$BUILD_IMAGE" = false ] && [ "$PUSH_IMAGE" = true ]; then
@@ -104,14 +143,28 @@ if [ "$BUILD_IMAGE" = false ] && [ "$PUSH_IMAGE" = true ]; then
         docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
     fi
 
-    # Push the image to Docker Hub
+    # Push the image to Docker Hub with latest tag
     print_status "Pushing image to Docker Hub as $REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG..."
     docker push "$REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
+    
+    # Push with semantic version tag if enabled
+    if [ "$PUSH_SEMVER" = true ]; then
+        # Get next semantic version
+        SEMVER_TAG=$(get_next_semver "${REMOTE_IMAGE_NAME}")
+        
+        print_status "Creating semantic version tag $REMOTE_IMAGE_NAME:$SEMVER_TAG..."
+        docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REMOTE_IMAGE_NAME:$SEMVER_TAG"
+        
+        print_status "Pushing image to Docker Hub as $REMOTE_IMAGE_NAME:$SEMVER_TAG..."
+        docker push "$REMOTE_IMAGE_NAME:$SEMVER_TAG"
+        print_success "Pushed semantic version: $SEMVER_TAG"
+    fi
+    
     print_success "Push complete! The image is available at $REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
     exit 0
 fi
 
-# Function to setup all required dependencies using common utilities
+# Function to setup all dependencies using common utilities
 setup_dependencies() {
     print_status "Setting up dependencies..."
     
@@ -127,6 +180,8 @@ setup_dependencies() {
     # Install Docker
     install_docker
 }
+
+
 
 # Change to master branch directory
 cd "$BRANCHES_DIR/master" || {
@@ -276,9 +331,23 @@ if [ "$PUSH_IMAGE" = true ]; then
         docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
     fi
 
-    # Push the image to Docker Hub
+    # Push the image to Docker Hub with latest tag
     print_status "Pushing image to Docker Hub as $REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG..."
     docker push "$REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
+    
+    # Push with semantic version tag if enabled
+    if [ "$PUSH_SEMVER" = true ]; then
+        # Get next semantic version
+        SEMVER_TAG=$(get_next_semver "${REMOTE_IMAGE_NAME}")
+        
+        print_status "Creating semantic version tag $REMOTE_IMAGE_NAME:$SEMVER_TAG..."
+        docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REMOTE_IMAGE_NAME:$SEMVER_TAG"
+        
+        print_status "Pushing image to Docker Hub as $REMOTE_IMAGE_NAME:$SEMVER_TAG..."
+        docker push "$REMOTE_IMAGE_NAME:$SEMVER_TAG"
+        print_success "Pushed semantic version: $SEMVER_TAG"
+    fi
+    
     print_success "Push complete! The image is available at $REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
 fi
 
