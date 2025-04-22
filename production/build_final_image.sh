@@ -86,7 +86,7 @@ main() {
     install_docker
     
     # Default values
-    local base_image="recurvedata/recurve-cube:base"
+    local base_image="recurvedata/recurve-cube-base:latest"
     local new_image_name="reorc/cube-official"
     local new_image_tag="latest"
     local remote_image_name="docker.tool.recurvedata.com/recurve-cube"

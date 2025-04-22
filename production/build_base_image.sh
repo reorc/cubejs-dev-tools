@@ -17,7 +17,7 @@ DEFAULT_IMAGE_TAG="latest"
 IMAGE_NAME=$DEFAULT_IMAGE_NAME
 IMAGE_TAG=$DEFAULT_IMAGE_TAG
 REMOTE_IMAGE_NAME="recurvedata/recurve-cube-base"
-REMOTE_IMAGE_TAG="latest"
+REMOTE_IMAGE_TAG=$(date +"%Y%m%d-%H%M%S")
 BUILD_IMAGE=true
 PUSH_IMAGE=true
 PUSH_SEMVER=true  # Whether to push with semantic version tag
@@ -141,11 +141,13 @@ if [ "$BUILD_IMAGE" = false ] && [ "$PUSH_IMAGE" = true ]; then
     if [ "$IMAGE_NAME:$IMAGE_TAG" != "$REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG" ]; then
         print_status "Creating remote tag $REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG..."
         docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
+        docker tag "$IMAGE_NAME:$IMAGE_TAG" "$REMOTE_IMAGE_NAME:latest"
     fi
 
     # Push the image to Docker Hub with latest tag
     print_status "Pushing image to Docker Hub as $REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG..."
     docker push "$REMOTE_IMAGE_NAME:$REMOTE_IMAGE_TAG"
+    docker push "$REMOTE_IMAGE_NAME:latest"
     
     # Push with semantic version tag if enabled
     if [ "$PUSH_SEMVER" = true ]; then
