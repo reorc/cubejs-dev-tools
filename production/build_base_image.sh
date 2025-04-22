@@ -133,12 +133,19 @@ cd "$BRANCHES_DIR/master" || {
     print_error "Error: Master branch directory not found!"
     exit 1
 }
+git pull
 
 # Remove existing release branch and worktree if they exist
+print_status "Checking for existing release branch and worktree..."
 if [ -d "$BRANCHES_DIR/$RELEASE_BRANCH" ]; then
-    print_status "Removing existing release branch and worktree..."
-    git worktree remove -f "$BRANCHES_DIR/$RELEASE_BRANCH"
-    git branch -D "$RELEASE_BRANCH" || true
+    print_status "Removing existing release worktree..."
+    git worktree remove -f "$BRANCHES_DIR/$RELEASE_BRANCH" || true
+fi
+
+# Check if the branch exists regardless of worktree status
+if git branch --list "$RELEASE_BRANCH" | grep -q "$RELEASE_BRANCH"; then
+    print_status "Removing existing release branch..."
+    git branch -D "$RELEASE_BRANCH"
 fi
 
 # Create new release branch from master
@@ -155,6 +162,7 @@ cd "$BRANCHES_DIR/$RELEASE_BRANCH" || {
 print_status "========================================================"
 print_status "Showing changes from reorc branch compared to master..."
 print_status "========================================================"
+git fetch origin master
 git fetch origin reorc
 
 # Capture changed packages into a variable
@@ -178,7 +186,22 @@ fi
 
 # Merge code from reorc branch
 print_status "Merging code from reorc branch..."
-git merge origin/reorc
+if ! git merge origin/reorc --no-commit; then
+    print_warning "Merge conflicts detected!"
+    print_status "Please resolve the conflicts manually, then continue with the build process."
+    print_status "You can use 'git status' to see the conflicting files."
+    print_status "After resolving conflicts, commit the changes with 'git commit -m \"Resolve merge conflicts\"'"
+    read -p "Have you resolved all conflicts? (y/n): " conflicts_resolved
+    if [[ $conflicts_resolved != [yY] && $conflicts_resolved != [yY][eE][sS] ]]; then
+        print_warning "Build process aborted. Please resolve conflicts before running this script again."
+        exit 1
+    fi
+    # Complete the merge with the resolved conflicts
+    git commit -m "Merge origin/reorc with conflicts resolved"
+else
+    # No conflicts, commit the merge
+    git commit -m "Merge origin/reorc into release branch"
+fi
 
 print_success "Release branch setup complete!"
 print_status "Release branch is at: $BRANCHES_DIR/$RELEASE_BRANCH"
