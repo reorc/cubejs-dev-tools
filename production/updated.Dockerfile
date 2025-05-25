@@ -17,6 +17,11 @@ RUN apt-get update \
 # Register the local schema-compiler package
 WORKDIR /cube/packages/cubejs-schema-compiler
 RUN yarn link
+WORKDIR /cube/packages/cubejs-clickhouse-driver
+RUN yarn link
+WORKDIR /cube/packages/cubejs-backend-shared
+RUN yarn link
+
 
 WORKDIR /cube
 # We are copying root yarn.lock file to the context folder during the Publish GH
@@ -24,6 +29,10 @@ WORKDIR /cube
 RUN yarn install --prod \
     # Link to use local schema-compiler
     && yarn link @cubejs-backend/schema-compiler \
+    && yarn link @cubejs-backend/clickhouse-driver \
+    && yarn link @cubejs-backend/shared \
+    # Manually install cross-fetch for clickhouse-driver
+    && yarn add cross-fetch --ignore-optional \
     # Remove DuckDB sources to reduce image size
     && rm -rf /cube/node_modules/duckdb/src \
     && yarn cache clean
@@ -53,6 +62,16 @@ WORKDIR /cube/packages/cubejs-schema-compiler
 RUN yarn link
 WORKDIR /cube/conf
 RUN yarn link @cubejs-backend/schema-compiler
+
+WORKDIR /cube/packages/cubejs-clickhouse-driver
+RUN yarn link
+WORKDIR /cube/conf
+RUN yarn link @cubejs-backend/clickhouse-driver
+
+WORKDIR /cube/packages/cubejs-backend-shared
+RUN yarn link
+WORKDIR /cube/conf
+RUN yarn link @cubejs-backend/shared
 
 WORKDIR /cube
 

@@ -13,7 +13,7 @@ DB_HOST=${CUBEJS_DB_HOST:-"127.0.0.1"}
 DB_PORT=${CUBEJS_DB_PORT:-"3306"}
 DB_NAME=${CUBEJS_DB_NAME:-"test"}
 DB_USER=${CUBEJS_DB_USER:-"root"}
-DB_PASS=${CUBEJS_DB_PASS:-"password"}
+DB_PASS=${CUBEJS_DB_PASS:-"mysql"}
 
 # Function to execute SQL files
 execute_sql_file() {

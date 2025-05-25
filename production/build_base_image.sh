@@ -10,6 +10,8 @@ SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 BASE_DIR=~/projects/cube
 BRANCHES_DIR=$BASE_DIR/branches
 RELEASE_BRANCH="release"
+MASTER_BRANCH="master-backward"
+REORC_BRANCH="reorc-reverted"
 
 # Default Docker image settings
 DEFAULT_IMAGE_NAME="reorc/cube"
@@ -17,7 +19,8 @@ DEFAULT_IMAGE_TAG="latest"
 IMAGE_NAME=$DEFAULT_IMAGE_NAME
 IMAGE_TAG=$DEFAULT_IMAGE_TAG
 REMOTE_IMAGE_NAME="recurvedata/recurve-cube-base"
-REMOTE_IMAGE_TAG=$(date +"%Y%m%d-%H%M%S")
+# REMOTE_IMAGE_TAG=$(date +"%Y%m%d-%H%M%S")
+REMOTE_IMAGE_TAG="v1.2.24_reorc_$(date +"%Y%m%d_%H%M%S")"
 BUILD_IMAGE=true
 PUSH_IMAGE=true
 PUSH_SEMVER=false  # Whether to push with semantic version tag
@@ -186,7 +189,7 @@ setup_dependencies() {
 
 
 # Change to master branch directory
-cd "$BRANCHES_DIR/master" || {
+cd "$BRANCHES_DIR/$MASTER_BRANCH" || {
     print_error "Error: Master branch directory not found!"
     exit 1
 }
@@ -217,33 +220,33 @@ cd "$BRANCHES_DIR/$RELEASE_BRANCH" || {
 
 # Show changes from reorc branch before merging
 print_status "========================================================"
-print_status "Showing changes from reorc branch compared to master..."
+print_status "Showing changes from $REORC_BRANCH branch compared to $MASTER_BRANCH..."
 print_status "========================================================"
-git fetch origin master
-git fetch origin reorc
+git fetch origin $MASTER_BRANCH
+git fetch origin $REORC_BRANCH
 
 # Capture changed packages into a variable
 print_status "Analyzing changed packages..."
-CHANGED_PACKAGES=$(git diff --name-only origin/master...origin/reorc | grep "^packages/" | cut -d'/' -f2 | sort -u)
+CHANGED_PACKAGES=$(git diff --name-only origin/$MASTER_BRANCH...origin/$REORC_BRANCH | grep "^packages/" | cut -d'/' -f2 | sort -u)
 print_status "Changed packages:"
 echo "$CHANGED_PACKAGES"
 
-print_status "Files changed in reorc branch:"
-git diff --name-status origin/master...origin/reorc
+print_status "Files changed in $REORC_BRANCH branch:"
+git diff --name-status origin/$MASTER_BRANCH...origin/$REORC_BRANCH
 
 print_status "Detailed changes (showing diff):"
-git diff --color=always origin/master...origin/reorc | less -R
+git diff --color=always origin/$MASTER_BRANCH...origin/$REORC_BRANCH | less -R
 
 # Prompt for confirmation before merging
-read -p "Do you want to proceed with merging the reorc branch? (y/n): " confirm
+read -p "Do you want to proceed with merging the $REORC_BRANCH branch? (y/n): " confirm
 if [[ $confirm != [yY] && $confirm != [yY][eE][sS] ]]; then
     print_warning "Merge aborted by user."
     exit 0
 fi
 
 # Merge code from reorc branch
-print_status "Merging code from reorc branch..."
-if ! git merge origin/reorc --no-commit; then
+print_status "Merging code from $REORC_BRANCH branch..."
+if ! git merge origin/$REORC_BRANCH --no-commit; then
     print_warning "Merge conflicts detected!"
     print_status "Please resolve the conflicts manually, then continue with the build process."
     print_status "You can use 'git status' to see the conflicting files."
@@ -254,10 +257,10 @@ if ! git merge origin/reorc --no-commit; then
         exit 1
     fi
     # Complete the merge with the resolved conflicts
-    git commit -m "Merge origin/reorc with conflicts resolved"
+    git commit -m "Merge origin/$REORC_BRANCH with conflicts resolved"
 else
     # No conflicts, commit the merge
-    git commit -m "Merge origin/reorc into release branch"
+    git commit -m "Merge origin/$REORC_BRANCH into release branch"
 fi
 
 print_success "Release branch setup complete!"
@@ -294,6 +297,10 @@ for package in $CHANGED_PACKAGES; do
         cp -r "$BRANCHES_DIR/$RELEASE_BRANCH/packages/$package" "$BRANCHES_DIR/$RELEASE_BRANCH/packages/cubejs-docker/packages/"
     fi
 done
+# Although cubejs-backend-native does not change
+# It contains compiled rust code that is changed by ReOrc
+cp -r "$BRANCHES_DIR/$RELEASE_BRANCH/packages/cubejs-backend-native" "$BRANCHES_DIR/$RELEASE_BRANCH/packages/cubejs-docker/packages/"
+
 
 # Install dependencies in packages/cubejs-docker
 print_status "Installing dependencies in cubejs-docker..."
