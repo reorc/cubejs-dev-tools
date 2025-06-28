@@ -11,7 +11,7 @@ BASE_DIR=~/projects/cube
 BRANCHES_DIR=$BASE_DIR/branches
 RELEASE_BRANCH="release"
 MASTER_BRANCH="master-backward"
-REORC_BRANCH="reorc-reverted"
+REORC_BRANCH="reorc-backward"
 
 # Default Docker image settings
 DEFAULT_IMAGE_NAME="reorc/cube"
