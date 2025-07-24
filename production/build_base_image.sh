@@ -10,8 +10,8 @@ SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
 BASE_DIR=~/projects/cube
 BRANCHES_DIR=$BASE_DIR/branches
 RELEASE_BRANCH="release"
-MASTER_BRANCH="master-backward"
-REORC_BRANCH="reorc-backward"
+MASTER_BRANCH="master" # official 
+REORC_BRANCH="reorc" # our changes here
 
 # Default Docker image settings
 DEFAULT_IMAGE_NAME="reorc/cube"
@@ -20,7 +20,7 @@ IMAGE_NAME=$DEFAULT_IMAGE_NAME
 IMAGE_TAG=$DEFAULT_IMAGE_TAG
 REMOTE_IMAGE_NAME="recurvedata/recurve-cube-base"
 # REMOTE_IMAGE_TAG=$(date +"%Y%m%d-%H%M%S")
-REMOTE_IMAGE_TAG="v1.2.24_reorc_$(date +"%Y%m%d_%H%M%S")"
+REMOTE_IMAGE_TAG="v1.3.41_reorc_$(date +"%Y%m%d_%H%M%S")"
 BUILD_IMAGE=true
 PUSH_IMAGE=true
 PUSH_SEMVER=false  # Whether to push with semantic version tag
