@@ -20,7 +20,7 @@ IMAGE_NAME=$DEFAULT_IMAGE_NAME
 IMAGE_TAG=$DEFAULT_IMAGE_TAG
 REMOTE_IMAGE_NAME="recurvedata/recurve-cube-base"
 # REMOTE_IMAGE_TAG=$(date +"%Y%m%d-%H%M%S")
-REMOTE_IMAGE_TAG="v1.3.42_reorc_$(date +"%Y%m%d_%H%M%S")"
+REMOTE_IMAGE_TAG="v1.3.67_reorc_$(date +"%Y%m%d_%H%M%S")"
 BUILD_IMAGE=true
 PUSH_IMAGE=true
 PUSH_SEMVER=false  # Whether to push with semantic version tag
@@ -177,7 +177,7 @@ setup_dependencies() {
     install_system_packages build-essential python3 make gcc g++ default-jdk
     
     # Install Node.js
-    install_nodejs 20.x
+    install_nodejs 22.x
     
     # Install Yarn
     install_yarn

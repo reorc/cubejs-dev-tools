@@ -178,6 +178,7 @@ print_section "Ensuring packages are properly linked from ${CUBE_REPO_PATH} to $
 
 # Core packages for API and query processing
 link_package "${CUBE_REPO_PATH}/packages/cubejs-api-gateway" "@cubejs-backend/api-gateway"
+link_package "${CUBE_REPO_PATH}/packages/cubejs-backend-native" "@cubejs-backend/native"
 link_package "${CUBE_REPO_PATH}/packages/cubejs-schema-compiler" "@cubejs-backend/schema-compiler"
 link_package "${CUBE_REPO_PATH}/packages/cubejs-clickhouse-driver" "@cubejs-backend/clickhouse-driver"
 link_package "${CUBE_REPO_PATH}/packages/cubejs-query-orchestrator" "@cubejs-backend/query-orchestrator"
